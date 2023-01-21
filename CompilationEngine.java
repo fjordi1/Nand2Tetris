@@ -38,7 +38,21 @@ public class CompilationEngine {
     }
 
     public void compileVarDec() throws IOException {
-        
+        if (!in.token.equals("var")){
+            return;
+        }
+            in.advance();
+            String type = in.token;
+            in.advance();
+        while(!in.token.equals(";")){
+            String varName = in.token;
+            symbols.define(varName, type, "local");
+            writer.writePush("local", symbols.varCount("VAR")-1);
+            in.advance();
+            if(in.token.equals(",")){
+                in.advance();
+            }
+        }
     }
 
     public void compileStatements() throws IOException {
