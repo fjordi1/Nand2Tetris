@@ -17,7 +17,7 @@ public class VMWriter {
         write("push", getSegment(segment), String.valueOf(i));
     }
     
-    public void writePoph(String segment, int i) {
+    public void writePop(String segment, int i) {
         write("pop", getSegment(segment), String.valueOf(i));
     }
 
@@ -74,7 +74,7 @@ public class VMWriter {
     }
 
     // Auxilary function to get the right segment value
-    public String getSegment(String seg) {
+    private String getSegment(String seg) {
         if(seg.equals("CONST")) {
             return "constant";
         } else if (seg.equals("ARG")) {

@@ -11,7 +11,7 @@ public class SymbolTable {
         classSym = new HashMap<String, Symbol>();
         subroutineSym = new HashMap<String, Symbol>();
 
-        index = new int [4]; // 0 = STATIC, 1 = FIELD, 2 = ARG, 3 = VAR
+        index = new int [4]; // index[0] = STATIC, index[1] = FIELD, index[2] = ARG, index[3] = VAR
     }
 
     public void reset() {
