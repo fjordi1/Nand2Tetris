@@ -22,7 +22,22 @@ public class CompilationEngine {
     }
 
     public void compileClassVarDec() throws IOException {
-        
+        if (!in.token.equals("field") && !in.token.equals("static")){
+            return;
+        }
+            String _class = in.token; // get the class of the variable (field / static)
+            in.advance();
+            String type = in.token; // get the type of the variable
+            in.advance();
+        while(!in.token.equals(";")){
+            String varName = in.token; // get the name of the variable 
+            symbols.define(varName, type, _class); // adds the variable to classSym table
+            writer.writePush(_class, symbols.varCount(_class.toUpperCase())-1); // push _class x , varCount-1 since define inc. index by 1.
+            in.advance();
+            if(in.token.equals(",")){
+                in.advance();
+            }
+        }
     }
 
     public void compileSubroutine() throws IOException {
@@ -57,14 +72,14 @@ public class CompilationEngine {
             return;
         }
             in.advance();
-            String type = in.token;
+            String type = in.token; // get the type of the variable
             in.advance();
         while(!in.token.equals(";")){
-            String varName = in.token;
-            symbols.define(varName, type, "local");
-            writer.writePush("local", symbols.varCount("VAR")-1);
+            String varName = in.token; // get the name of the variable
+            symbols.define(varName, type, "local"); // insert it into the subroutineSym Table
+            writer.writePush("local", symbols.varCount("VAR")-1); // push local x , varCount-1 since define inc. index by 1.
             in.advance();
-            if(in.token.equals(",")){
+            if(in.token.equals(",")){ // checks for more variables of the same type
                 in.advance();
             }
         }
