@@ -5,7 +5,6 @@ public class CompilationEngine {
     private JackTokenizer in;
     private VMWriter writer;
     private SymbolTable symbols;
-    private String currClass;
     private String currType;
     private String currSubroutine;
     private int labelIndex;
@@ -20,7 +19,17 @@ public class CompilationEngine {
     }
 
     public void compileClass() throws IOException {
-        
+        process("class");
+        ClassName = in.token; // used to save current class name
+        process(in.token); // class name
+        process("{");
+        while(!in.token.equals("constructor") && !in.token.equals("function") && !in.token.equals("method")) {
+            compileClassVarDec();
+        }
+        while(!in.token.equals("}")) {
+            compileSubroutine();
+        }
+        process("}");
     }
 
     public void compileClassVarDec() throws IOException {
@@ -43,7 +52,16 @@ public class CompilationEngine {
     }
 
     public void compileSubroutine() throws IOException {
-        
+        symbols.reset();
+        currType = in.token; // used to check if keyword is method or function/constructor
+        process(in.token); // constructor | function | method
+        process(in.token); // void | type
+        currSubroutine = in.token; // used to save current subroutineName
+        process(in.token); // subroutineName
+        process("(");
+        compileParameterList();
+        process(")");
+        compileSubroutineBody();
     }
 
     public void compileParameterList() throws IOException {
@@ -66,7 +84,6 @@ public class CompilationEngine {
     }
 
     public void compileSubroutineBody() throws IOException {
-        currType = in.token; // used to check if keyword is method or function/constructor
         process("{");
         compileVarDec();
         String funName = ClassName + "." + in.token;
@@ -272,11 +289,39 @@ public class CompilationEngine {
     }
 
     public void compileSubroutineCall() throws IOException {
-        
+        // TODO *****************************
+        String prev = in.token;
+        String prevType = in.tokenType();
+        in.advance();
+        if(in.token.equals(".")) {
+            process(".");
+            process(in.token);
+            process("(");
+            compileExpressionList();
+            process(")");
+        } else if(in.token.equals("[")) {
+            process("[");
+            compileExpression();
+            process("]");
+        } else if(in.token.equals("(")) {
+            process("(");
+            compileExpressionList();
+            process(")");
+        }
     }
 
     public int compileExpressionList() throws IOException {
-        
+        int count = 0;
+        if(!in.token.equals(")")) {
+            count++;
+            compileExpression();
+            while(in.token.equals(",")) { // checks for multiple variables
+                count++;
+                process(",");
+                compileExpression();
+            }
+        }
+        return count;
     }
 
     private void process(String str) {
