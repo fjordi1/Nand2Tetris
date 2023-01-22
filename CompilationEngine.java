@@ -43,7 +43,7 @@ public class CompilationEngine {
         while(!in.token.equals(";")){
             String varName = in.token; // get the name of the variable 
             symbols.define(varName, type, _class); // adds the variable to classSym table
-            writer.writePush(_class, symbols.varCount(_class.toUpperCase())-1); // push _class x , varCount-1 since define inc. index by 1.
+            //writer.writePush(_class, symbols.varCount(_class.toUpperCase())-1); // push class x , varCount-1 since define inc. index by 1.
             in.advance();
             if(in.token.equals(",")){
                 in.advance();
@@ -114,7 +114,7 @@ public class CompilationEngine {
         while(!in.token.equals(";")){
             String varName = in.token; // get the name of the variable
             symbols.define(varName, type, "local"); // insert it into the subroutineSym Table
-            writer.writePush("local", symbols.varCount("VAR")-1); // push local x , varCount-1 since define inc. index by 1.
+            //writer.writePush("local", symbols.varCount("VAR")-1); // push local x , varCount-1 since define inc. index by 1.
             in.advance();
             if(in.token.equals(",")){ // checks for more variables of the same type
                 in.advance();
@@ -281,12 +281,114 @@ public class CompilationEngine {
     }
 
     public void compileExpression() throws IOException {
-        
+        compileTerm(); // term  
+
+                        // op term
+        in.advance();
+        String Op = "";
+        while(in.isOp()) {
+            switch (in.symbol()){
+                case '+': {
+                    Op = "ADD";
+                    break;
+                }
+                case '-': {
+                    Op = "SUB";
+                    break;
+                }
+                case '*': {
+                    Op = "Math.multiply";
+                    break;
+                }
+                case '/': {
+                    Op = "Math.divide";
+                    break;
+                }
+                case '>': {
+                    Op = "GT";
+                    break;
+                }
+                case '<': {
+                    Op = "LT";
+                    break;
+                }
+                case '=': {
+                    Op = "EQ";
+                    break;
+                }
+                case '&': {
+                    Op = "AND";
+                    break;
+                }
+                case '|': {
+                    Op = "OR";
+                    break;
+                }
+            }
+            in.advance();
+            compileTerm();
+
+            if(Op.equals("Math.multiply") || Op.equals("Math.divide")){
+                writer.writeCall(Op, 2);
+            }
+            else{
+                writer.writeArithmethic(Op);
+            }
+            in.advance();
+        }
     }
 
     public void compileTerm() throws IOException {
-        
+         
+        if(in.tokenType().equals("identifier")) {
+            compileSubroutineCall();
+        } else if(in.token.equals("-") || in.token.equals("~")) {
+            char c = in.symbol();
+            compileTerm();
+            if (c == '-'){
+                writer.writeArithmethic("NEG");
+            }
+            else {
+                writer.writeArithmethic("NOT");
+            }
+        } else if(in.token.equals("(")) {
+            process("(");
+            compileExpression();
+            process(")");
+        } else {
+            if(in.tokenType().equals("stringConstant")) {
+                String str = in.stringVal();
+                writer.writePush("CONST",str.length());
+                writer.writeCall("String.new",1);
+
+                for (int i = 0; i < str.length(); i++){
+                    writer.writePush("CONST",(int)str.charAt(i));
+                    writer.writeCall("String.appendChar",2);
+                }
+                in.advance();
+            } 
+            else if(in.tokenType().equals("integerConstant")) {
+                writer.writePush("CONST", in.intVal());
+            }
+            else if(in.tokenType().equals("keyword")){
+                switch(in.keyWord()){
+                    case "this":{ 
+                        writer.writePush("POINTER",0);
+                    }
+                    case "true": {
+                        writer.writePush("CONST",1);
+                    }
+                    case "false":{
+                        writer.writePush("CONST",0);
+                    }
+                    case "null":{
+                        writer.writePush("CONST",0);
+                    }
+                }
+            }
+        }
     }
+
 
     public void compileSubroutineCall() throws IOException {
         // TODO *****************************
