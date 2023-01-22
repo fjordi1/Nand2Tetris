@@ -389,26 +389,26 @@ public class CompilationEngine {
         }
     }
 
-
+    // subroutineName '(' expressionList ')' | (className|varName) '.' subroutineName '(' expressionList ')'
     public void compileSubroutineCall() throws IOException {
-        // TODO *****************************
-        String prev = in.token;
-        String prevType = in.tokenType();
+        int nArgs = 0;
+        String subName = in.token;
         in.advance();
         if(in.token.equals(".")) {
             process(".");
+            String objName = subName;
+            subName = in.token;
             process(in.token);
             process("(");
-            compileExpressionList();
+            nArgs += compileExpressionList();
             process(")");
-        } else if(in.token.equals("[")) {
-            process("[");
-            compileExpression();
-            process("]");
+            writer.writeCall(objName + "." + subName, nArgs);
         } else if(in.token.equals("(")) {
+            writer.writePush("POINTER", 0); // push 'this' pointer
             process("(");
-            compileExpressionList();
+            nArgs += compileExpressionList();
             process(")");
+            writer.writeCall(ClassName + "." + subName, nArgs);
         }
     }
 
