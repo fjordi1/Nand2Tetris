@@ -6,8 +6,10 @@ public class CompilationEngine {
     private VMWriter writer;
     private SymbolTable symbols;
     private String currClass;
+    private String currType;
     private String currSubroutine;
     private int labelIndex;
+    private String ClassName;
 
     public CompilationEngine(JackTokenizer token, FileWriter output) throws IOException {
         in = token;
@@ -64,7 +66,25 @@ public class CompilationEngine {
     }
 
     public void compileSubroutineBody() throws IOException {
-        
+        currType = in.token; // used to check if keyword is method or function/constructor
+        process("{");
+        compileVarDec();
+        String funName = ClassName + "." + in.token;
+        in.advance();
+        int nVars = Integer.parseInt(in.token);
+        writer.writeFunction(funName,nVars);
+        //write VM function declaration
+        if (currType.equals("method")){
+            writer.writePush("ARG",0);
+            writer.writePop("POINTER",0);
+        }
+        else if(currType.equals("function") || currType.equals("constructor")){
+            writer.writePush("constant", symbols.varCount("FIELD"));
+            writer.writeCall("Memory.alloc", 1);
+            writer.writePop("POINTER",0);
+        }
+        compileStatement();
+        process("}");
     }
 
     public void compileVarDec() throws IOException {
