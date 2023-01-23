@@ -61,11 +61,24 @@ public class CompilationEngine {
         process("(");
         compileParameterList();
         process(")");
+
+        writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("VAR"));
+
+        // Different actions for method and consturctor
+        if (currType.equals("method")){
+            writer.writePush("ARG", 0);
+            writer.writePop("POINTER",0);
+
+        }else if (currType.equals("constructor")){
+            writer.writePush("CONST",symbols.varCount("FIELD"));
+            writer.writeCall("Memory.alloc", 1);
+            writer.writePop("POINTER",0);
+        }
+
         compileSubroutineBody();
     }
 
     public void compileParameterList() throws IOException {
-        in.advance();
         if(!in.token.equals(")")) {
             String type = in.token; // type
             in.advance();
@@ -86,21 +99,21 @@ public class CompilationEngine {
     public void compileSubroutineBody() throws IOException {
         process("{");
         compileVarDec();
-        String funName = ClassName + "." + in.token;
-        in.advance();
-        int nVars = Integer.parseInt(in.token);
-        writer.writeFunction(funName,nVars);
-        //write VM function declaration
-        if (currType.equals("method")){
-            writer.writePush("ARG",0);
-            writer.writePop("POINTER",0);
-        }
-        else if(currType.equals("function") || currType.equals("constructor")){
-            writer.writePush("constant", symbols.varCount("FIELD"));
-            writer.writeCall("Memory.alloc", 1);
-            writer.writePop("POINTER",0);
-        }
-        compileStatement();
+        // String funName = ClassName + "." + in.token;
+        // in.advance();
+        // int nVars = Integer.parseInt(in.token);
+        // writer.writeFunction(funName,nVars);
+        // //write VM function declaration
+        // if (currType.equals("method")){
+        //     writer.writePush("ARG",0);
+        //     writer.writePop("POINTER",0);
+        // }
+        // else if(currType.equals("function") || currType.equals("constructor")){
+        //     writer.writePush("constant", symbols.varCount("FIELD"));
+        //     writer.writeCall("Memory.alloc", 1);
+        //     writer.writePop("POINTER",0);
+        // }
+        compileStatements();
         process("}");
     }
 
@@ -108,18 +121,19 @@ public class CompilationEngine {
         if (!in.token.equals("var")){
             return;
         }
-            in.advance();
+            process("var");
             String type = in.token; // get the type of the variable
-            in.advance();
+            process(type);
         while(!in.token.equals(";")){
             String varName = in.token; // get the name of the variable
             symbols.define(varName, type, "local"); // insert it into the subroutineSym Table
             //writer.writePush("local", symbols.varCount("VAR")-1); // push local x , varCount-1 since define inc. index by 1.
             in.advance();
             if(in.token.equals(",")){ // checks for more variables of the same type
-                in.advance();
+                process(",");
             }
         }
+        process(";");
     }
 
     public void compileStatements() throws IOException {
@@ -274,9 +288,9 @@ public class CompilationEngine {
             //expression
             compileExpression();
             //';'
-            process(";");
+            
         }
-
+        process(";");
         writer.writeReturn();
     }
 
@@ -284,7 +298,6 @@ public class CompilationEngine {
         compileTerm(); // term  
 
                         // op term
-        in.advance();
         String Op = "";
         while(in.isOp()) {
             switch (in.symbol()){
@@ -334,7 +347,7 @@ public class CompilationEngine {
             else{
                 writer.writeArithmethic(Op);
             }
-            in.advance();
+            System.out.println("We're in expression");
         }
     }
 
@@ -344,16 +357,18 @@ public class CompilationEngine {
             compileSubroutineCall();
         } else if(in.token.equals("-") || in.token.equals("~")) {
             char c = in.symbol();
-            compileTerm();
             if (c == '-'){
                 writer.writeArithmethic("NEG");
             }
             else {
                 writer.writeArithmethic("NOT");
             }
+            in.advance();
+            compileTerm();
         } else if(in.token.equals("(")) {
             process("(");
             compileExpression();
+            System.out.println("not in expression");
             process(")");
         } else {
             if(in.tokenType().equals("stringConstant")) {
@@ -369,6 +384,7 @@ public class CompilationEngine {
             } 
             else if(in.tokenType().equals("integerConstant")) {
                 writer.writePush("CONST", in.intVal());
+                in.advance();
             }
             else if(in.tokenType().equals("keyword")){
                 switch(in.keyWord()){
@@ -385,12 +401,14 @@ public class CompilationEngine {
                         writer.writePush("CONST",0);
                     }
                 }
+                in.advance();
             }
         }
     }
 
     // subroutineName '(' expressionList ')' | (className|varName) '.' subroutineName '(' expressionList ')'
     public void compileSubroutineCall() throws IOException {
+        in.advance();
         int nArgs = 0;
         String subName = in.token;
         in.advance();
@@ -428,7 +446,8 @@ public class CompilationEngine {
 
     private void process(String str) {
         if(!in.token.equals(str)) {
-            throw new IllegalStateException("Expected token: " + str + " Current token: " + in.token);
+            //throw new IllegalStateException("Expected token: " + str + " Current token: " + in.token);
+            System.out.println("Expected token: " + str + " Current token: " + in.token);
         }
         if(in.hasMoreTokens()) {
             in.advance();
