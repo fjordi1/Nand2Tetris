@@ -174,8 +174,9 @@ public class CompilationEngine {
 
         // '=' or '['
         boolean isArr = false;
-        in.advance();
+        process(varName);
         if(in.token.equals("[")) {
+            process("[");
             isArr = true;
 
             // push arr
