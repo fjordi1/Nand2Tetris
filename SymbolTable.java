@@ -25,22 +25,22 @@ public class SymbolTable {
             return;
         }
         else{
-            if(kind.equals("STATIC")){
+            if(kind.equals("STATIC") || kind.equals("static")){
                 Symbol sym = new Symbol(type,kind,index[0]);
                 index[0]++;
                 classSym.put(name, sym);
             }
-            else if(kind.equals("FIELD")){
+            else if(kind.equals("FIELD") || kind.equals("field")){
                 Symbol sym = new Symbol(type,kind,index[1]);
                 index[1]++;
                 classSym.put(name, sym);
             }
-            else if (kind.equals("ARG")){
+            else if (kind.equals("ARG") || kind.equals("argument")){
                 Symbol sym = new Symbol(type,kind,index[2]);
                 index[2]++;
                 subroutineSym.put(name, sym);
             }
-            else if(kind.equals("FIELD")){
+            else if(kind.equals("VAR") || kind.equals("local")){
                 Symbol sym = new Symbol(type,kind,index[3]);
                 index[3]++;
                 subroutineSym.put(name, sym);

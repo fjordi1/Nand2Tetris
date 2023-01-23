@@ -62,7 +62,7 @@ public class CompilationEngine {
         compileParameterList();
         process(")");
 
-        writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("VAR"));
+        writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("ARG"));
 
         // Different actions for method and consturctor
         if (currType.equals("method")){
@@ -81,16 +81,16 @@ public class CompilationEngine {
     public void compileParameterList() throws IOException {
         if(!in.token.equals(")")) {
             String type = in.token; // type
-            in.advance();
+            process(type);
             String varName = in.token; // varName
             symbols.define(varName, type, "ARG");
+            process(varName);
             while(in.token.equals(",")) { // checks for multiple variables
                 process(",");
-                in.advance(); // type
                 type = in.token;
-                in.advance(); // varName
+                process(type); // varName
                 varName = in.token;
-                in.advance();
+                process(varName);
                 symbols.define(varName, type, "ARG");
             }
         }
@@ -98,7 +98,9 @@ public class CompilationEngine {
 
     public void compileSubroutineBody() throws IOException {
         process("{");
-        compileVarDec();
+        while(in.token.equals("var")) {
+            compileVarDec();
+        }
         // String funName = ClassName + "." + in.token;
         // in.advance();
         // int nVars = Integer.parseInt(in.token);
@@ -128,7 +130,7 @@ public class CompilationEngine {
             String varName = in.token; // get the name of the variable
             symbols.define(varName, type, "local"); // insert it into the subroutineSym Table
             //writer.writePush("local", symbols.varCount("VAR")-1); // push local x , varCount-1 since define inc. index by 1.
-            in.advance();
+            process(varName);
             if(in.token.equals(",")){ // checks for more variables of the same type
                 process(",");
             }
@@ -167,7 +169,7 @@ public class CompilationEngine {
     // let arr[2] = 17
     public void compileLet() throws IOException {
         //varName
-        in.advance();
+        process("let");
         String varName = in.identifier();
 
         // '=' or '['
@@ -207,6 +209,7 @@ public class CompilationEngine {
     }
 
     public void compileIf() throws IOException {
+        process("if");
         String elseLabel = newLabel();
         String endLabel = newLabel();
 
@@ -231,10 +234,10 @@ public class CompilationEngine {
 
         writer.writeLabel(elseLabel);
 
-        in.advance();
         if(in.token.equals("else")) {
+            process("else");
             process("{");
-            compileStatement();
+            compileStatements();
             process("}");
         } 
 
@@ -242,6 +245,7 @@ public class CompilationEngine {
     }
 
     public void compileWhile() throws IOException {
+        process("while");
         // while(expression) {statements}
         String startLabel = newLabel();
         String endLabel = newLabel();
@@ -265,9 +269,12 @@ public class CompilationEngine {
         writer.writeGoto(startLabel);
 
         writer.writeLabel(endLabel);
+
+        process("}");
     }
 
     public void compileDo() throws IOException {
+        process("do");
         // Handle subroutine call
         compileSubroutineCall();
 
@@ -408,7 +415,6 @@ public class CompilationEngine {
 
     // subroutineName '(' expressionList ')' | (className|varName) '.' subroutineName '(' expressionList ')'
     public void compileSubroutineCall() throws IOException {
-        in.advance();
         int nArgs = 0;
         String subName = in.token;
         in.advance();
