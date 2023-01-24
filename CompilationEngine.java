@@ -62,8 +62,6 @@ public class CompilationEngine {
         compileParameterList();
         process(")");
 
-        writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("ARG"));
-
         // Different actions for method and consturctor
         if (currType.equals("method")){
             writer.writePush("ARG", 0);
@@ -101,20 +99,10 @@ public class CompilationEngine {
         while(in.token.equals("var")) {
             compileVarDec();
         }
-        // String funName = ClassName + "." + in.token;
-        // in.advance();
-        // int nVars = Integer.parseInt(in.token);
-        // writer.writeFunction(funName,nVars);
-        // //write VM function declaration
-        // if (currType.equals("method")){
-        //     writer.writePush("ARG",0);
-        //     writer.writePop("POINTER",0);
-        // }
-        // else if(currType.equals("function") || currType.equals("constructor")){
-        //     writer.writePush("constant", symbols.varCount("FIELD"));
-        //     writer.writeCall("Memory.alloc", 1);
-        //     writer.writePop("POINTER",0);
-        // }
+
+        // Write function declaration after knowing how many vars you have
+        writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("VAR"));
+
         compileStatements();
         process("}");
     }
@@ -189,10 +177,10 @@ public class CompilationEngine {
 
             // add
             writer.writeArithmethic("ADD");
-        }
+        } 
 
         // expression - push 17
-        in.advance();
+        process("=");
         compileExpression();
 
         // ;
@@ -227,7 +215,7 @@ public class CompilationEngine {
 
         process("{");
 
-        compileStatement();
+        compileStatements();
 
         process("}");
 
@@ -248,8 +236,9 @@ public class CompilationEngine {
     public void compileWhile() throws IOException {
         process("while");
         // while(expression) {statements}
-        String startLabel = newLabel();
         String endLabel = newLabel();
+        String startLabel = newLabel();
+        
 
         writer.writeLabel(startLabel);
 
@@ -355,62 +344,77 @@ public class CompilationEngine {
             else{
                 writer.writeArithmethic(Op);
             }
-            System.out.println("We're in expression");
         }
     }
 
     public void compileTerm() throws IOException {
          
         if(in.tokenType().equals("identifier")) {
-            compileSubroutineCall();
+            String varName = in.token;
+            process(varName);
+            if(in.token.equals("[")) {
+                process("[");
+                writer.writePush(symbols.kindOf(varName), symbols.indexOf(varName));
+                compileExpression();
+                process("]");
+                writer.writeArithmethic("ADD");
+                writer.writePop("POINTER", 1);
+                writer.writePush("THAT", 0);
+            } else if (in.token.equals("(") || in.token.equals(".")) {
+                compileSubroutineCall(varName);
+            } else {
+                writer.writePush(symbols.kindOf(varName), symbols.indexOf(varName));
+            }
+            
         } else if(in.token.equals("-") || in.token.equals("~")) {
             char c = in.symbol();
+            process("" + c);
+            compileTerm();
             if (c == '-'){
                 writer.writeArithmethic("NEG");
             }
             else {
                 writer.writeArithmethic("NOT");
             }
-            in.advance();
-            compileTerm();
+            
         } else if(in.token.equals("(")) {
             process("(");
             compileExpression();
-            System.out.println("not in expression");
             process(")");
-        } else {
-            if(in.tokenType().equals("stringConstant")) {
-                String str = in.stringVal();
-                writer.writePush("CONST",str.length());
-                writer.writeCall("String.new",1);
+        } else if(in.tokenType().equals("stringConstant")) {
+            String str = in.stringVal();
+            writer.writePush("CONST",str.length());
+            writer.writeCall("String.new",1);
 
-                for (int i = 0; i < str.length(); i++){
-                    writer.writePush("CONST",(int)str.charAt(i));
-                    writer.writeCall("String.appendChar",2);
-                }
-                in.advance();
-            } 
-            else if(in.tokenType().equals("integerConstant")) {
-                writer.writePush("CONST", in.intVal());
-                in.advance();
+            for (int i = 0; i < str.length(); i++){
+                writer.writePush("CONST",(int)str.charAt(i));
+                writer.writeCall("String.appendChar",2);
             }
-            else if(in.tokenType().equals("keyword")){
-                switch(in.keyWord()){
-                    case "this":{ 
-                        writer.writePush("POINTER",0);
-                    }
-                    case "true": {
-                        writer.writePush("CONST",1);
-                    }
-                    case "false":{
-                        writer.writePush("CONST",0);
-                    }
-                    case "null":{
-                        writer.writePush("CONST",0);
-                    }
+            in.advance();
+        } else if(in.tokenType().equals("integerConstant")) {
+            writer.writePush("CONST", in.intVal());
+            in.advance();
+        } else if(in.tokenType().equals("keyword")){
+            switch(in.keyWord()){
+                case "THIS":{ 
+                    writer.writePush("POINTER",0);
+                    break;
                 }
-                in.advance();
+                case "TRUE": {
+                    writer.writePush("CONST",0);
+                    writer.writeArithmethic("NOT");
+                    break;
+                }
+                case "FALSE":{
+                    writer.writePush("CONST",0);
+                    break;
+                }
+                case "NULL":{
+                    writer.writePush("CONST",0);
+                    break;
+                }
             }
+            in.advance();
         }
     }
 
@@ -419,6 +423,26 @@ public class CompilationEngine {
         int nArgs = 0;
         String subName = in.token;
         in.advance();
+        if(in.token.equals(".")) {
+            process(".");
+            String objName = subName;
+            subName = in.token;
+            process(in.token);
+            process("(");
+            nArgs += compileExpressionList();
+            process(")");
+            writer.writeCall(objName + "." + subName, nArgs);
+        } else if(in.token.equals("(")) {
+            writer.writePush("POINTER", 0); // push 'this' pointer
+            process("(");
+            nArgs += compileExpressionList();
+            process(")");
+            writer.writeCall(ClassName + "." + subName, nArgs);
+        }
+    }
+
+    public void compileSubroutineCall(String subName) throws IOException {
+        int nArgs = 0;
         if(in.token.equals(".")) {
             process(".");
             String objName = subName;
