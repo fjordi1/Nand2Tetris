@@ -51,13 +51,11 @@ public class JackTokenizer {
             }
             String[] split = tkn.split("\"");
             token += split[0] + '"';
-            System.out.println(token);
             stack.push(split[1]);
             return;
         } 
         if(tkn.length() == 1) {
             token = tkn;
-            System.out.println(token);
             return;
         }
         if(tkn.contains("//") || tkn.isEmpty()) {
@@ -88,7 +86,6 @@ public class JackTokenizer {
             }
         }
         token = tkn;
-        System.out.println(token);
     }
 
     public String tokenType() {

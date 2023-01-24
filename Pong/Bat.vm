@@ -13,7 +13,7 @@ pop this 3
 push constant 2
 pop this 4
 push pointer 0
-call Bat.show 1
+call Bat.show 0
 pop temp 0
 push pointer 0
 return
@@ -33,7 +33,7 @@ not
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Bat.draw 1
+call Bat.draw 0
 pop temp 0
 push constant 0
 return
@@ -44,7 +44,7 @@ push constant 0
 call Screen.setColor 1
 pop temp 0
 push pointer 0
-call Bat.draw 1
+call Bat.draw 0
 pop temp 0
 push constant 0
 return
@@ -66,7 +66,7 @@ return
 function Bat.setDirection 0
 push argument 0
 pop pointer 0
-push argument 1
+push argument 0
 pop this 4
 push constant 0
 return
@@ -86,12 +86,12 @@ function Bat.setWidth 0
 push argument 0
 pop pointer 0
 push pointer 0
-call Bat.hide 1
+call Bat.hide 0
 pop temp 0
-push argument 1
+push argument 0
 pop this 2
 push pointer 0
-call Bat.show 1
+call Bat.show 0
 pop temp 0
 push constant 0
 return
@@ -101,9 +101,8 @@ pop pointer 0
 push this 4
 push constant 1
 eq
-if-goto IF_TRUE0
-goto IF_FALSE0
-label IF_TRUE0
+not
+if-goto L0
 push this 0
 push constant 4
 sub
@@ -111,12 +110,13 @@ pop this 0
 push this 0
 push constant 0
 lt
-if-goto IF_TRUE1
-goto IF_FALSE1
-label IF_TRUE1
+not
+if-goto L2
 push constant 0
 pop this 0
-label IF_FALSE1
+goto L3
+label L2
+label L3
 push constant 0
 call Screen.setColor 1
 pop temp 0
@@ -150,8 +150,8 @@ push this 3
 add
 call Screen.drawRectangle 4
 pop temp 0
-goto IF_END0
-label IF_FALSE0
+goto L1
+label L0
 push this 0
 push constant 4
 add
@@ -161,14 +161,15 @@ push this 2
 add
 push constant 511
 gt
-if-goto IF_TRUE2
-goto IF_FALSE2
-label IF_TRUE2
+not
+if-goto L4
 push constant 511
 push this 2
 sub
 pop this 0
-label IF_FALSE2
+goto L5
+label L4
+label L5
 push constant 0
 call Screen.setColor 1
 pop temp 0
@@ -202,6 +203,6 @@ push this 3
 add
 call Screen.drawRectangle 4
 pop temp 0
-label IF_END0
+label L1
 push constant 0
 return

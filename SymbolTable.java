@@ -79,7 +79,7 @@ public class SymbolTable {
         }else if (subroutineSym.get(name) != null){ //checks if 'name' is in the hashtable "Subroutine"
             return subroutineSym.get(name).getType();
         } else
-        return null;
+        return "";
     }
     
     public int indexOf(String name) {

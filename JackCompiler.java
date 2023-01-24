@@ -33,7 +33,7 @@ public class JackCompiler {
         for (File f : fileList) {
             try {
                 jack = new JackTokenizer(f);
-                outputName = f.toString().substring(0, f.toString().lastIndexOf('.')) + "Our.vm";
+                outputName = f.toString().substring(0, f.toString().lastIndexOf('.')) + ".vm";
                 out = new FileWriter(outputName);
                 engine = new CompilationEngine(jack, out);
                 jack.advance();

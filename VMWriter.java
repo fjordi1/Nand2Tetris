@@ -79,6 +79,8 @@ public class VMWriter {
             return "constant";
         } else if (seg.equals("ARG")) {
             return "argument";
+        } else if (seg.equals("field")) {
+            return "this";
         } else {
             return seg.toLowerCase();
         }

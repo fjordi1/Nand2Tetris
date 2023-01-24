@@ -49,6 +49,7 @@ public class CompilationEngine {
                 in.advance();
             }
         }
+        process(";");
     }
 
     public void compileSubroutine() throws IOException {
@@ -61,17 +62,6 @@ public class CompilationEngine {
         process("(");
         compileParameterList();
         process(")");
-
-        // Different actions for method and consturctor
-        if (currType.equals("method")){
-            writer.writePush("ARG", 0);
-            writer.writePop("POINTER",0);
-
-        }else if (currType.equals("constructor")){
-            writer.writePush("CONST",symbols.varCount("FIELD"));
-            writer.writeCall("Memory.alloc", 1);
-            writer.writePop("POINTER",0);
-        }
 
         compileSubroutineBody();
     }
@@ -102,6 +92,17 @@ public class CompilationEngine {
 
         // Write function declaration after knowing how many vars you have
         writer.writeFunction(ClassName + "." + currSubroutine ,symbols.varCount("VAR"));
+        
+        // Different actions for method and consturctor
+        if (currType.equals("method")){
+            writer.writePush("ARG", 0);
+            writer.writePop("POINTER",0);
+
+        }else if (currType.equals("constructor")){
+            writer.writePush("CONST",symbols.varCount("FIELD"));
+            writer.writeCall("Memory.alloc", 1);
+            writer.writePop("POINTER",0);
+        }
 
         compileStatements();
         process("}");
@@ -423,21 +424,33 @@ public class CompilationEngine {
         int nArgs = 0;
         String subName = in.token;
         in.advance();
-        if(in.token.equals(".")) {
-            process(".");
-            String objName = subName;
-            subName = in.token;
-            process(in.token);
-            process("(");
-            nArgs += compileExpressionList();
-            process(")");
-            writer.writeCall(objName + "." + subName, nArgs);
-        } else if(in.token.equals("(")) {
+        if(in.token.equals("(")) {
             writer.writePush("POINTER", 0); // push 'this' pointer
             process("(");
             nArgs += compileExpressionList();
             process(")");
             writer.writeCall(ClassName + "." + subName, nArgs);
+        }
+        else if(in.token.equals(".")) {
+            process(".");
+            String objName = subName;
+            subName = in.token;
+            process(in.token);
+            
+            String type = symbols.typeOf(objName);
+            String finalName = "";
+
+            if(type.equals("")) {
+                finalName = objName + "." + subName;
+            } else {
+                writer.writePush(symbols.kindOf(objName), symbols.indexOf(objName));
+                finalName = objName + "." + subName;
+                
+            }
+            process("(");
+            nArgs += compileExpressionList();
+            process(")");
+            writer.writeCall(finalName, nArgs);
         }
     }
 
@@ -451,7 +464,14 @@ public class CompilationEngine {
             process("(");
             nArgs += compileExpressionList();
             process(")");
-            writer.writeCall(objName + "." + subName, nArgs);
+            String type = symbols.typeOf(objName);
+            if(type.equals("")) {
+                writer.writeCall(objName + "." + subName, nArgs);
+            } else {
+                writer.writePush(symbols.kindOf(objName), symbols.indexOf(objName));
+                writer.writeCall(symbols.typeOf(objName) + "." + subName, nArgs);
+            }
+            
         } else if(in.token.equals("(")) {
             writer.writePush("POINTER", 0); // push 'this' pointer
             process("(");
